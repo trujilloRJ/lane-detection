@@ -36,6 +36,10 @@ class LaneDataset(Dataset):
         gt = gt[:, :IMG_HEIGHT, :IMG_WIDTH]
 
         return img.float(), gt.float()
+    
+    def get_curr_img_fn(self, idx):
+        img_fn, _ = self.img_gt_list[idx]
+        return img_fn
 
 
 class Down(nn.Module):
@@ -100,21 +104,13 @@ class LaneDetectionUNet(nn.Module):
         return logits
 
 
-if __name__ == "__main__":
-    # print(f"Using {DEVICE} device")
-    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
-    # gt_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\gt_image_2"
+def dice_loss(pred_bhw, target_bhw, eps=1.0):
+    pred_bhw = torch.sigmoid(pred_bhw) 
 
-    # train_data = LaneDataset(img_folder, gt_folder)
+    sum_dim = (-1, -2) # sum over H, W
 
-    # img, gt = train_data[0]
+    intersection = (pred_bhw * target_bhw).sum(dim=sum_dim) 
+    dice = (2.0 * intersection + eps) / (pred_bhw.sum(dim=sum_dim) + target_bhw.sum(dim=sum_dim) + eps)
 
-    # net = LaneDetectionUNet()
-    # img_out = net(img)
-    
-    # img_out = img_out.squeeze().detach().numpy()
-    # cv2.imshow("Image + lane", img_out)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-    pass
+    return 1.0 - dice.mean()
 
