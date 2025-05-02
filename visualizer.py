@@ -10,7 +10,7 @@ def main():
 
     frame = cv2.imread(f"{img_folder}/um_{img_index}.png")
     gt_frame = cv2.imread(f"{gt_folder}/um_lane_{img_index}.png") #BGR format
-    
+
     mask = np.all(gt_frame == GT_LANE_COLOR, axis=-1)
     gt_frame[~mask] = [0, 0, 0]
 

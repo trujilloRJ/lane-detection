@@ -7,8 +7,8 @@ from os import listdir
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-DEVICE = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-IMG_HEIGHT = 375
+# not all images have this size, but they differ from 1 or 2 pixels, we will need to crop or pad accordingly 
+IMG_HEIGHT = 375  
 IMG_WIDTH = 1242
 
 class LaneDataset(Dataset):
@@ -27,6 +27,14 @@ class LaneDataset(Dataset):
         img_fn, gt_fn = self.img_gt_list[idx]
         img = read_image(f"{self.img_folder}/{img_fn}")
         gt = read_image(f"{self.gt_folder}/{gt_fn}")
+
+        # TODO: this can be done offline for speeding-up training
+        # Crop or pad the image and ground truth to the target size
+        img = F.pad(img, (0, max(0, IMG_WIDTH - img.shape[2]), 0, max(0, IMG_HEIGHT - img.shape[1])), mode='constant', value=0)
+        gt = F.pad(gt, (0, max(0, IMG_WIDTH - gt.shape[2]), 0, max(0, IMG_HEIGHT - gt.shape[1])), mode='constant', value=0)
+        img = img[:, :IMG_HEIGHT, :IMG_WIDTH]
+        gt = gt[:, :IMG_HEIGHT, :IMG_WIDTH]
+
         return img.float(), gt.float()
 
 
@@ -71,12 +79,9 @@ class LaneDetectionUNet(nn.Module):
         self.u1 = Up(32, 16)   # f=1/2
         self.u2 = Up(32, 16, out_size=(IMG_HEIGHT, IMG_WIDTH))   # f=1
 
-        self.out_conv = nn.Conv2d(16, 1, kernel_size=3, padding=1)
-
-        self.out = nn.Softmax()
+        self.out_conv = nn.Conv2d(16, 1, kernel_size=1)
 
     def forward(self, X):
-        X = X[None, :, :, :] # add minibatch dimension, REMOVE later
 
         X1 = self.d1(X)
         X = self.d2(X1)
@@ -91,24 +96,25 @@ class LaneDetectionUNet(nn.Module):
         
         X = self.u2(X)
 
-        X = self.out(self.out_conv(X))
-        return X
+        logits = self.out_conv(X)
+        return logits
 
 
 if __name__ == "__main__":
     # print(f"Using {DEVICE} device")
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
-    gt_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\gt_image_2"
+    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
+    # gt_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\gt_image_2"
 
-    train_data = LaneDataset(img_folder, gt_folder)
+    # train_data = LaneDataset(img_folder, gt_folder)
 
-    img, gt = train_data[0]
+    # img, gt = train_data[0]
 
-    net = LaneDetectionUNet()
-    img_out = net(img)
+    # net = LaneDetectionUNet()
+    # img_out = net(img)
     
-    img_out = img_out.squeeze().detach().numpy()
-    cv2.imshow("Image + lane", img_out)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # img_out = img_out.squeeze().detach().numpy()
+    # cv2.imshow("Image + lane", img_out)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    pass
 
