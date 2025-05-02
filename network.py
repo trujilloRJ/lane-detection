@@ -49,6 +49,7 @@ class Down(nn.Module):
         self.operation = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
+            nn.BatchNorm2d(out_ch),
             nn.MaxPool2d(2)
         )
     def forward(self, X):
@@ -67,6 +68,7 @@ class Up(nn.Module):
         self.operation = nn.Sequential(
             uplayer,
             nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_ch),
             nn.ReLU()
         )
     def forward(self, X):
@@ -104,7 +106,7 @@ class LaneDetectionUNet(nn.Module):
         return logits
 
 
-def dice_loss(pred_bhw, target_bhw, eps=1.0):
+def dice_loss(pred_bhw, target_bhw, eps=0.001):
     pred_bhw = torch.sigmoid(pred_bhw) 
 
     sum_dim = (-1, -2) # sum over H, W

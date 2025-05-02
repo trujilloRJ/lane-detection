@@ -21,7 +21,8 @@ if __name__=="__main__":
     dataset = LaneDataset(img_folder, gt_folder)
 
     model = LaneDetectionUNet()
-    model.load_state_dict(torch.load("checkpoints/shallowUNET_v2_dice_loss_ep11.pth"))
+    params = torch.load("checkpoints/shallowUNET_v3_bn_dice_ep11.pth")
+    model.load_state_dict(params['model_state_dict'])
     model.eval()
 
     run = True
