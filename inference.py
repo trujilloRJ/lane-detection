@@ -15,14 +15,16 @@ KEY_G = 103
 KEY_S = 115
 
 if __name__=="__main__":
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
+    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
+    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
     gt_folder = r"data\labels"
 
     dataset = LaneDataset(img_folder, gt_folder)
 
     model = LaneDetectionUNet()
-    params = torch.load("checkpoints/shallowUNET_v3_bn_dice_ep11.pth")
+    params = torch.load("checkpoints/shallowUNET_v3_bn_dice_ep25.pth")
     model.load_state_dict(params['model_state_dict'])
+     
     model.eval()
 
     run = True
@@ -53,7 +55,7 @@ if __name__=="__main__":
         frame1 = cv2.addWeighted(img, 1, gt, 0.5, 0)
         frame2 = cv2.addWeighted(img, 1, pred, 0.5, 0)
 
-        cv2.imshow(f"GT", frame1)
+        # cv2.imshow(f"GT", frame1)
         cv2.imshow(f"Prediction", frame2)
         key = cv2.waitKey(0)
 

@@ -43,10 +43,10 @@ def load_checkpoint(model, optimizer, path):
 if __name__ == "__main__":
     # hyper-parameters
     experiment_name = "v3_bn_dice"
-    resume_training = False
-    initial_epoch = 0
+    resume_training = True
+    initial_epoch = 11
     SEED = 0
-    n_epochs = 12
+    n_epochs = 15
     lr = 0.001
     batch_size = 32
     save_each = 3
@@ -68,12 +68,6 @@ if __name__ == "__main__":
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
     model = LaneDetectionUNet()
-    if resume_training:
-        # load a pre-trained model and resume training
-        try:
-            model.load_state_dict(torch.load(f"checkpoints/shallowUNET_{experiment_name}_ep{initial_epoch}.pth"))
-        except:
-            raise FileNotFoundError("Unable to laod trained model to resume training")
 
     # not enough memory in CUDA :(
     # model.to(DEVICE)
@@ -81,6 +75,13 @@ if __name__ == "__main__":
     loss_fn = loss_bce_dice
 
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
+
+    if resume_training:
+        # load a pre-trained model and resume training
+        try:
+            load_checkpoint(model, optimizer, f"checkpoints/shallowUNET_{experiment_name}_ep{initial_epoch}.pth")
+        except:
+            raise FileNotFoundError("Unable to laod trained model to resume training")
 
     for epoch in range(n_epochs):
         global_epoch = initial_epoch + epoch
