@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from constants import IMG_HEIGHT, IMG_WIDTH
 import torch.nn.functional as F
 import warnings
+import tqdm
 
 warnings.filterwarnings("error")
 
@@ -19,7 +20,7 @@ def auc_from_roc_curve(tpr, fpr):
 
 if __name__ == "__main__":
 
-    exp_name = "shallowUNET_v5_deep_B4_Lmix_R_ep95"
+    exp_name = "shallowUNET_v6_deep_double_conv_B4_Lmix_R_ep90"
     pred_path = f"results/{exp_name}"
     gt_path = r"data\testing"
     
@@ -31,8 +32,7 @@ if __name__ == "__main__":
     fp_vec = np.zeros_like(tp_vec)
     fn_vec = np.zeros_like(tp_vec)
 
-    for j, img_name in enumerate(files_):
-        print(f"File {j}")
+    for j, img_name in enumerate(tqdm.tqdm(files_)):
         img_name = img_name.split(".")[0]
 
         try:

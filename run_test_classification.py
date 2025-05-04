@@ -8,14 +8,14 @@ from network import LaneDetectionUNet, LaneDataset
 if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
     dummy = r"data\labels"
-    model_name = "shallowUNET_v5_deep_B_Lmix_R_ep100"
+    model_name = "shallowUNET_v6_deep_double_conv_B4_Lmix_R_ep90"
 
     if not os.path.exists(f"results/{model_name}"):
         os.makedirs(f"results/{model_name}")
 
     dataset = LaneDataset(img_folder, dummy)
 
-    model = LaneDetectionUNet()
+    model = LaneDetectionUNet(double_conv=True)
     params = torch.load(f"checkpoints/{model_name}.pth")
     model.load_state_dict(params['model_state_dict'])
     model.eval()

@@ -1,9 +1,10 @@
 import torch
+import logging
+import tqdm
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from network import LaneDataset, LaneDetectionUNet, loss_bce_dice, jaccard_loss
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "v5_deep_B4_Lmix_R"
+    experiment_name = "v6_deep_double_conv_B4_Lmix_R"
     resume_training = False
     initial_epoch = 0
     SEED = 0
@@ -62,7 +63,8 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
-    model = LaneDetectionUNet()
+    double_conv = True
+    model = LaneDetectionUNet(double_conv)
 
     # not enough memory in CUDA :(
     model.to(DEVICE)
@@ -82,7 +84,7 @@ if __name__ == "__main__":
         print(f"Training local epoch {epoch + 1}/{n_epochs}")
         model.train()
         epoch_tr_loss = 0.
-        for b, batch in enumerate(train_loader):
+        for b, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Training epoch {epoch}")):
             img, label = batch
             img = img.to(DEVICE)
             label = label.to(DEVICE)
@@ -99,7 +101,7 @@ if __name__ == "__main__":
 
             optimizer.zero_grad(set_to_none=True)
 
-            print(f"   Batch {b} -> loss: {loss.item():.3f}")
+            # print(f"   Batch {b} -> loss: {loss.item():.3f}")
         epoch_tr_loss /= (b + 1)
 
         # validation round

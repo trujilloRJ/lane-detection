@@ -15,14 +15,14 @@ KEY_G = 103
 KEY_S = 115
 
 if __name__=="__main__":
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
-    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
+    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
+    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
     gt_folder = r"data\labels"
 
     dataset = LaneDataset(img_folder, gt_folder)
 
-    model = LaneDetectionUNet()
-    params = torch.load("checkpoints/shallowUNET_v5_deep_B_Lmix_R_ep110.pth")
+    model = LaneDetectionUNet(double_conv=True)
+    params = torch.load("checkpoints/shallowUNET_v6_deep_double_conv_B4_Lmix_R_ep90.pth")
     model.load_state_dict(params['model_state_dict'])
      
     model.eval()
@@ -62,7 +62,7 @@ if __name__=="__main__":
         frame1 = cv2.addWeighted(img, 1, gt, 0.5, 0)
         frame2 = cv2.addWeighted(img, 1, pred, 0.5, 0)
 
-        cv2.imshow(f"GT", frame1)
+        # cv2.imshow(f"GT", frame1)
         cv2.putText(frame2, f"Loss BCE + Dice: {loss_mixed:.3f}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(frame2, f"Loss BCE:        {loss_bce:.3f}", (50, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(frame2, f"Loss Dice:       {loss_dice:.3f}", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
