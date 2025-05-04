@@ -8,7 +8,7 @@ from network import LaneDetectionUNet, LaneDataset
 if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
     gt_folder = r"data\labels"
-    model_name = "shallowUNET_v4_2conv_B_Lmix_R_ep15"
+    model_name = "shallowUNET_v5_deep_B_Lmix_R_ep110"
 
     if not os.path.exists(f"results/{model_name}"):
         os.makedirs(f"results/{model_name}")

@@ -44,12 +44,12 @@ class Down(nn.Module):
         super().__init__()
         # padding = 1 preserve the image size after the convolution
         self.operation = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
+            nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True),
+            # nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+            # nn.BatchNorm2d(out_ch),
+            # nn.ReLU(inplace=True),
             nn.MaxPool2d(2)
         )
     def forward(self, X):
@@ -67,12 +67,12 @@ class Up(nn.Module):
 
         self.operation = nn.Sequential(
             uplayer,
-            nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
+            nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_ch),
             nn.ReLU(),
-            nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU()
+            # nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+            # nn.BatchNorm2d(out_ch),
+            # nn.ReLU()
         )
     def forward(self, X):
         return self.operation(X)
@@ -84,15 +84,28 @@ class LaneDetectionUNet(nn.Module):
 
         self.d1 = Down(3, 16)  # f=1/2
         self.d2 = Down(16, 32) # f=1/4
-        self.u1 = Up(32, 16)   # f=1/2
-        self.u2 = Up(32, 16, out_size=(IMG_HEIGHT, IMG_WIDTH))   # f=1
+        self.d3 = Down(32, 64) # f=1/8
+        self.u1 = Down(64, 32) # f=1/4
+        self.u2 = Up(64, 16)   # f=1/2
+        self.u3 = Up(32, 16, out_size=(IMG_HEIGHT, IMG_WIDTH))   # f=1
         self.out_conv = nn.Conv2d(16, 1, kernel_size=1)
 
     def forward(self, X):
 
         X1 = self.d1(X)
-        X = self.d2(X1)
+        X2 = self.d2(X1)
+        X = self.d3(X2)
+
+
         X = self.u1(X)
+
+        # concat X2 and X along channels
+        diffY = X2.size()[2] - X.size()[2]
+        diffX = X2.size()[3] - X.size()[3]
+        X = F.pad(X, [diffX // 2, diffX - diffX // 2,
+                        diffY // 2, diffY - diffY // 2])
+        X = torch.cat([X, X2], dim=1)
+        X = self.u2(X)
 
         # concat X1 and X along channels
         diffY = X1.size()[2] - X.size()[2]
@@ -100,8 +113,7 @@ class LaneDetectionUNet(nn.Module):
         X = F.pad(X, [diffX // 2, diffX - diffX // 2,
                         diffY // 2, diffY - diffY // 2])
         X = torch.cat([X, X1], dim=1)
-        
-        X = self.u2(X)
+        X = self.u3(X)
 
         logits = self.out_conv(X)
         return logits

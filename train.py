@@ -36,14 +36,14 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "v4_2conv_B_Lmix_R"
-    resume_training = False
-    initial_epoch = 0
+    experiment_name = "v5_deep_B_Lmix_R"
+    resume_training = True
+    initial_epoch = 15
     SEED = 0
-    n_epochs = 15
+    n_epochs = 100
     lr = 0.001
-    batch_size = 32
-    save_each = 3
+    batch_size = 8
+    save_each = 10
     loss_fn = loss_bce_dice
     #-------------------------
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     model = LaneDetectionUNet()
 
     # not enough memory in CUDA :(
-    # model.to(DEVICE)
+    model.to(DEVICE)
 
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
 
@@ -76,6 +76,7 @@ if __name__ == "__main__":
         except:
             raise FileNotFoundError("Unable to laod trained model to resume training")
 
+    lower_val_loss = 100
     for epoch in range(n_epochs):
         global_epoch = initial_epoch + epoch + 1
         print(f"Training local epoch {epoch + 1}/{n_epochs}")
@@ -83,6 +84,8 @@ if __name__ == "__main__":
         epoch_tr_loss = 0.
         for b, batch in enumerate(train_loader):
             img, label = batch
+            img = img.to(DEVICE)
+            label = label.to(DEVICE)
 
             optimizer.zero_grad()
 
@@ -103,12 +106,20 @@ if __name__ == "__main__":
         epoch_val_loss = 0.
         with torch.no_grad():
             for b, (img, label) in enumerate(val_loader):
+                img = img.to(DEVICE)
+                label = label.to(DEVICE)
                 logits = model(img)
                 loss = loss_fn(logits, label)
                 epoch_val_loss += loss.item()
         epoch_val_loss /= (b + 1)
 
-        if ((global_epoch > 0) & (global_epoch % save_each == 0)):
+        if epoch_val_loss < lower_val_loss:
+            lower_val_loss = epoch_val_loss
+            save_this = True
+        else:
+            save_this = False
+
+        if ((global_epoch % save_each == 0) | (save_this)):
             save_checkpoint(model, optimizer, epoch,  f"checkpoints/shallowUNET_{experiment_name}_ep{global_epoch}.pth")
 
         logging.info(f"Global epoch: {global_epoch} -> Train loss: {epoch_tr_loss:.3f} | Validation loss: {epoch_val_loss:.3f}")

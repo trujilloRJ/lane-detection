@@ -19,7 +19,7 @@ def auc_from_roc_curve(tpr, fpr):
 
 if __name__ == "__main__":
 
-    exp_name = "shallowUNET_v4_2conv_B_Lmix_R_ep15"
+    exp_name = "shallowUNET_v5_deep_B_Lmix_R_ep110"
     pred_path = f"results/{exp_name}"
     gt_path = r"data\labels"
     

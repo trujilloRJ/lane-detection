@@ -22,14 +22,14 @@ if __name__=="__main__":
     dataset = LaneDataset(img_folder, gt_folder)
 
     model = LaneDetectionUNet()
-    params = torch.load("checkpoints/shallowUNET_v3_B_Lmix_R_ep35.pth")
+    params = torch.load("checkpoints/shallowUNET_v5_deep_B_Lmix_R_ep110.pth")
     model.load_state_dict(params['model_state_dict'])
      
     model.eval()
 
     run = True
     img_index = 0
-    thr = 0.2
+    thr = 0.4
     while(run):
         img, gt = dataset[img_index]
         
