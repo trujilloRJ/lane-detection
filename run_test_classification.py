@@ -8,7 +8,7 @@ from network import LaneDetectionUNet, LaneDataset
 if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
     gt_folder = r"data\labels"
-    model_name = "shallowUNET_v3_bn_dice_ep25"
+    model_name = "shallowUNET_v4_2conv_B_Lmix_R_ep15"
 
     if not os.path.exists(f"results/{model_name}"):
         os.makedirs(f"results/{model_name}")
@@ -20,7 +20,6 @@ if __name__=="__main__":
     model.load_state_dict(params['model_state_dict'])
     model.eval()
 
-    thr = 0.5
     for idx, (img_name, gt_name) in enumerate(dataset.img_gt_list):
         img, _ = dataset[idx]
         img = img[None, :, :, :]

@@ -6,10 +6,7 @@ from torchvision.io import read_image
 from os import listdir
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
-
-# not all images have this size, but they differ from 1 or 2 pixels, we will need to crop or pad accordingly 
-IMG_HEIGHT = 375  
-IMG_WIDTH = 1242
+from constants import IMG_HEIGHT, IMG_WIDTH
 
 class LaneDataset(Dataset):
     def __init__(self, img_folder: str, gt_folder: str):
@@ -48,8 +45,11 @@ class Down(nn.Module):
         # padding = 1 preserve the image size after the convolution
         self.operation = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
             nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
             nn.MaxPool2d(2)
         )
     def forward(self, X):
@@ -69,6 +69,9 @@ class Up(nn.Module):
             uplayer,
             nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_ch),
+            nn.ReLU(),
+            nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_ch),
             nn.ReLU()
         )
     def forward(self, X):
@@ -79,12 +82,10 @@ class LaneDetectionUNet(nn.Module):
     def __init__(self):
         super().__init__()
 
-        # TODO: add batch normalization
         self.d1 = Down(3, 16)  # f=1/2
         self.d2 = Down(16, 32) # f=1/4
         self.u1 = Up(32, 16)   # f=1/2
         self.u2 = Up(32, 16, out_size=(IMG_HEIGHT, IMG_WIDTH))   # f=1
-
         self.out_conv = nn.Conv2d(16, 1, kernel_size=1)
 
     def forward(self, X):
@@ -108,11 +109,21 @@ class LaneDetectionUNet(nn.Module):
 
 def dice_loss(pred_bhw, target_bhw, eps=0.001):
     pred_bhw = torch.sigmoid(pred_bhw) 
-
     sum_dim = (-1, -2) # sum over H, W
-
     intersection = (pred_bhw * target_bhw).sum(dim=sum_dim) 
     dice = (2.0 * intersection + eps) / (pred_bhw.sum(dim=sum_dim) + target_bhw.sum(dim=sum_dim) + eps)
-
     return 1.0 - dice.mean()
+
+def jaccard_loss(pred_bhw, target_bhw, eps=0.001):
+    pred_bhw = torch.sigmoid(pred_bhw) 
+    sum_dim = (-1, -2) # sum over H, W
+    intersection = (pred_bhw * target_bhw).sum(dim=sum_dim) 
+    dice = (intersection + eps) / (pred_bhw.sum(dim=sum_dim) + target_bhw.sum(dim=sum_dim) + eps - intersection)
+    return 1.0 - dice.mean()
+
+def loss_bce_dice(logits_bhw, label_bhw, alpha=.5):
+    label_bhw = label_bhw.float()
+    loss_bce = F.binary_cross_entropy_with_logits(logits_bhw, label_bhw)
+    loss_dice = dice_loss(logits_bhw, label_bhw)
+    return alpha * loss_bce + (1 - alpha) * loss_dice
 

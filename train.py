@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
-from network import LaneDataset, LaneDetectionUNet, dice_loss
+from network import LaneDataset, LaneDetectionUNet, loss_bce_dice, jaccard_loss
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,12 +15,6 @@ def set_seed(seed=0):
     torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
     torch.backends.cudnn.deterministic = True
-
-def loss_bce_dice(logits_bhw, label_bhw, alpha=.5):
-    label_bhw = label_bhw.float()
-    loss_bce = F.binary_cross_entropy_with_logits(logits_bhw, label_bhw)
-    loss_dice = dice_loss(logits_bhw, label_bhw)
-    return alpha * loss_bce + (1 - alpha) * loss_dice
 
 
 def save_checkpoint(model, optimizer, epoch, path):
@@ -42,14 +36,15 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "v3_bn_dice"
-    resume_training = True
-    initial_epoch = 11
+    experiment_name = "v4_2conv_B_Lmix_R"
+    resume_training = False
+    initial_epoch = 0
     SEED = 0
     n_epochs = 15
     lr = 0.001
     batch_size = 32
     save_each = 3
+    loss_fn = loss_bce_dice
     #-------------------------
 
     logging.basicConfig(filename=f'checkpoints/{experiment_name}.log', encoding='utf-8', level=logging.DEBUG)
@@ -72,8 +67,6 @@ if __name__ == "__main__":
     # not enough memory in CUDA :(
     # model.to(DEVICE)
 
-    loss_fn = loss_bce_dice
-
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
 
     if resume_training:
@@ -84,7 +77,7 @@ if __name__ == "__main__":
             raise FileNotFoundError("Unable to laod trained model to resume training")
 
     for epoch in range(n_epochs):
-        global_epoch = initial_epoch + epoch
+        global_epoch = initial_epoch + epoch + 1
         print(f"Training local epoch {epoch + 1}/{n_epochs}")
         model.train()
         epoch_tr_loss = 0.
@@ -97,7 +90,7 @@ if __name__ == "__main__":
 
             # B, 1, H, W
             
-            loss = loss_fn(logits.squeeze(1), label.squeeze(1))
+            loss = loss_fn(logits.squeeze(1), label.squeeze(1).float())
             epoch_tr_loss += loss.item()
             loss.backward()
 
