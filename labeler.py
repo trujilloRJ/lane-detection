@@ -41,7 +41,8 @@ if __name__=="__main__":
             is_loaded = True
 
         frame = cv2.addWeighted(img, 1, mask, 0.5, 0)
-        cv2.putText(frame, f"Margin: {draw_margin}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+        cv2.putText(frame, f"Margin: {draw_margin}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+        cv2.putText(frame, f"{img_name}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
         cv2.imshow("Labeler", frame)
 
         key = cv2.waitKey(0)

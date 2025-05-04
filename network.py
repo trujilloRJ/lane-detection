@@ -40,24 +40,34 @@ class LaneDataset(Dataset):
 
 
 class Down(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int):
+    def __init__(self, in_ch: int, out_ch: int, double_conv: bool = False):
         super().__init__()
         # padding = 1 preserve the image size after the convolution
-        self.operation = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True),
-            # nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(out_ch),
-            # nn.ReLU(inplace=True),
-            nn.MaxPool2d(2)
-        )
+
+        if double_conv:
+            self.operation = nn.Sequential(
+                nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(2)
+            )
+        else:
+            self.operation = nn.Sequential(
+                nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(2)
+            )
+
     def forward(self, X):
         return self.operation(X)
 
 
 class Up(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int, scale_factor=2, out_size=None):
+    def __init__(self, in_ch: int, out_ch: int, scale_factor=2, out_size=None, double_conv: bool = False):
         super().__init__()
 
         if out_size:
@@ -65,27 +75,36 @@ class Up(nn.Module):
         else:
             uplayer = nn.Upsample(scale_factor=scale_factor, mode="bilinear", align_corners=True)
 
-        self.operation = nn.Sequential(
-            uplayer,
-            nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU(),
-            # nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
-            # nn.BatchNorm2d(out_ch),
-            # nn.ReLU()
-        )
+        if double_conv:
+            self.operation = nn.Sequential(
+                uplayer,
+                nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU(),
+                nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU()
+            )
+        else:
+            self.operation = nn.Sequential(
+                uplayer,
+                nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU(),
+            )
+
     def forward(self, X):
         return self.operation(X)
 
 
 class LaneDetectionUNet(nn.Module):
-    def __init__(self):
+    def __init__(self, double_conv=False):
         super().__init__()
 
         self.d1 = Down(3, 16)  # f=1/2
         self.d2 = Down(16, 32) # f=1/4
         self.d3 = Down(32, 64) # f=1/8
-        self.u1 = Down(64, 32) # f=1/4
+        self.u1 = Up(64, 32)   # f=1/4
         self.u2 = Up(64, 16)   # f=1/2
         self.u3 = Up(32, 16, out_size=(IMG_HEIGHT, IMG_WIDTH))   # f=1
         self.out_conv = nn.Conv2d(16, 1, kernel_size=1)
@@ -96,28 +115,27 @@ class LaneDetectionUNet(nn.Module):
         X2 = self.d2(X1)
         X = self.d3(X2)
 
-
         X = self.u1(X)
 
         # concat X2 and X along channels
-        diffY = X2.size()[2] - X.size()[2]
-        diffX = X2.size()[3] - X.size()[3]
-        X = F.pad(X, [diffX // 2, diffX - diffX // 2,
-                        diffY // 2, diffY - diffY // 2])
-        X = torch.cat([X, X2], dim=1)
+        X = self.concatenate_tensors(X, X2)
         X = self.u2(X)
 
         # concat X1 and X along channels
+        X = self.concatenate_tensors(X, X1)
+        X = self.u3(X)
+
+        logits = self.out_conv(X)
+        return logits
+    
+    def concatenate_tensors(self, X, X1):
         diffY = X1.size()[2] - X.size()[2]
         diffX = X1.size()[3] - X.size()[3]
         X = F.pad(X, [diffX // 2, diffX - diffX // 2,
                         diffY // 2, diffY - diffY // 2])
         X = torch.cat([X, X1], dim=1)
-        X = self.u3(X)
-
-        logits = self.out_conv(X)
-        return logits
-
+        return X
+    
 
 def dice_loss(pred_bhw, target_bhw, eps=0.001):
     pred_bhw = torch.sigmoid(pred_bhw) 

@@ -2,11 +2,12 @@ import cv2
 from os import listdir
 import numpy as np
 
-GT_LANE_COLOR = [255, 0, 255]  #BGR
+# GT_LANE_COLOR = [255, 0, 255]  #BGR
+GT_LANE_COLOR = [0, 254, 0]  #BGR
 
 def main():
-    gt_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\gt_image_2" 
-    gt_mask_folder = r"data\labels" 
+    gt_folder = r"data\testing" 
+    gt_mask_folder = r"data\testing" 
     
     for gt_fn in listdir(gt_folder):
         gt_frame = cv2.imread(f"{gt_folder}/{gt_fn}") #BGR format

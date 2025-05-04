@@ -36,13 +36,13 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "v5_deep_B_Lmix_R"
-    resume_training = True
-    initial_epoch = 15
+    experiment_name = "v5_deep_B4_Lmix_R"
+    resume_training = False
+    initial_epoch = 0
     SEED = 0
     n_epochs = 100
-    lr = 0.001
-    batch_size = 8
+    lr = 0.0003
+    batch_size = 4
     save_each = 10
     loss_fn = loss_bce_dice
     #-------------------------
@@ -87,8 +87,6 @@ if __name__ == "__main__":
             img = img.to(DEVICE)
             label = label.to(DEVICE)
 
-            optimizer.zero_grad()
-
             logits = model(img)
 
             # B, 1, H, W
@@ -98,6 +96,9 @@ if __name__ == "__main__":
             loss.backward()
 
             optimizer.step()
+
+            optimizer.zero_grad(set_to_none=True)
+
             print(f"   Batch {b} -> loss: {loss.item():.3f}")
         epoch_tr_loss /= (b + 1)
 

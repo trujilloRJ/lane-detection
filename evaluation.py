@@ -19,12 +19,12 @@ def auc_from_roc_curve(tpr, fpr):
 
 if __name__ == "__main__":
 
-    exp_name = "shallowUNET_v5_deep_B_Lmix_R_ep110"
+    exp_name = "shallowUNET_v5_deep_B4_Lmix_R_ep95"
     pred_path = f"results/{exp_name}"
-    gt_path = r"data\labels"
+    gt_path = r"data\testing"
     
     files_ = os.listdir(pred_path)
-    thr_vec = np.arange(0, 1, step=0.05)
+    thr_vec = np.arange(0, 1, step=0.01)
     n_files, n_thrs = len(files_), len(thr_vec)
 
     tp_vec = np.zeros(n_thrs)
@@ -37,14 +37,13 @@ if __name__ == "__main__":
 
         try:
             pred = cv2.imread(f"{pred_path}/{img_name}.png", cv2.IMREAD_GRAYSCALE)
-            gt = cv2.imread(f"{gt_path}/mask_{img_name.split("_")[0]}_road_{img_name.split("_")[1]}.png", cv2.IMREAD_GRAYSCALE)
+            gt = cv2.imread(f"{gt_path}/mask_{img_name}.png", cv2.IMREAD_GRAYSCALE)
         except:
             print("WARNING: {img_name} unable to read, will be skipped for validation")
             continue
 
         # Pad gt to be of IMG_HEIGHT, IMG_WIDTH, crop gt to be of IMG_HEIGHT, IMG_WIDTH
         if (gt is not None):
-            gt *= 255
             gt = gt[:IMG_HEIGHT, :IMG_WIDTH]
             pad_height = max(0, IMG_HEIGHT - gt.shape[0])
             pad_width = max(0, IMG_WIDTH - gt.shape[1])
@@ -57,7 +56,7 @@ if __name__ == "__main__":
 
             # prepare for metrics
             pred = pred.astype(float)/255. # in a range of 0 to 1 indicating probs
-            gt = gt.astype(float)/255.   # [0, 1]
+            gt = gt.astype(float)          # [0, 1]
 
             # compute metrics on pixel similarity
             for i, thr in enumerate(thr_vec):
