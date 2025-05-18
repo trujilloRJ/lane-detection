@@ -66,7 +66,6 @@ if __name__ == "__main__":
     double_conv = True
     model = LaneDetectionUNet(double_conv)
 
-    # not enough memory in CUDA :(
     model.to(DEVICE)
 
     optimizer = torch.optim.Adam(model.parameters(), lr = lr)
