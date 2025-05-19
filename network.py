@@ -137,7 +137,7 @@ class LaneDetectionUNet(nn.Module):
         return X
     
 
-def dice_loss(pred_bhw, target_bhw, eps=0.001):
+def dice_loss(pred_bhw, target_bhw, eps=0.001, **kwargs):
     pred_bhw = torch.sigmoid(pred_bhw) 
     sum_dim = (-1, -2) # sum over H, W
     intersection = (pred_bhw * target_bhw).sum(dim=sum_dim) 
@@ -151,9 +151,9 @@ def jaccard_loss(pred_bhw, target_bhw, eps=0.001):
     dice = (intersection + eps) / (pred_bhw.sum(dim=sum_dim) + target_bhw.sum(dim=sum_dim) + eps - intersection)
     return 1.0 - dice.mean()
 
-def loss_bce_dice(logits_bhw, label_bhw, alpha=.5):
+def loss_bce_dice(logits_bhw, label_bhw, wbce, alpha=.5):
     label_bhw = label_bhw.float()
-    loss_bce = F.binary_cross_entropy_with_logits(logits_bhw, label_bhw)
+    loss_bce = F.binary_cross_entropy_with_logits(logits_bhw, label_bhw, weight=wbce)
     loss_dice = dice_loss(logits_bhw, label_bhw)
-    return alpha * loss_bce + (1 - alpha) * loss_dice
+    return loss_bce + loss_dice, loss_dice
 

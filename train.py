@@ -4,7 +4,8 @@ import tqdm
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
-from network import LaneDataset, LaneDetectionUNet, loss_bce_dice, jaccard_loss
+from network import LaneDataset, LaneDetectionUNet, loss_bce_dice, dice_loss
+from enum import Enum
 import json
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,9 @@ def save_checkpoint(model, optimizer, epoch, path):
     }
     torch.save(checkpoint, path)
 
+class OptimizerChoice(Enum):
+    ADAMW = "adamw"
+    SGD = "sgd"
 
 def load_checkpoint(model, optimizer, path):
     checkpoint = torch.load(path)
@@ -38,20 +42,23 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "sUNet_v7_Scos"
-    resume_training = False
-    initial_epoch = 0
+    experiment_name = "sUNet_v7_Srop_adam_wbce"
+    resume_training = True
+    initial_epoch = 131
     SEED = 0
-    n_epochs = 200
-    lr = 0.001
+    n_epochs = 150
+    lr = 5e-5
     batch_size = 4
     save_each = 25
+    optimizer_choice = OptimizerChoice.ADAMW
     loss_fn = loss_bce_dice
+    wbce = torch.tensor([0.8], device=DEVICE) # weight of the BCE loss
     #-------------------------
 
     # initializing experiment configuration
     config = {
         "exp_name": experiment_name,
+        "optimizer_choice": OptimizerChoice.SGD.value
     }
 
     logging.basicConfig(filename=f'checkpoints/{experiment_name}.log', encoding='utf-8', level=logging.DEBUG)
@@ -80,9 +87,17 @@ if __name__ == "__main__":
     model = LaneDetectionUNet(double_conv)
 
     model.to(DEVICE)
-
-    optimizer = torch.optim.AdamW(model.parameters(), lr = lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*n_epochs, eta_min=1e-5)
+  
+    if optimizer_choice is OptimizerChoice.ADAMW:
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    elif optimizer_choice is OptimizerChoice.SGD:
+        # momentum value from UNET paper
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.99, weight_decay=1e-4)
+    else:
+        raise ValueError(f"Unknown optimizer: {optimizer_choice}")
+    
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*n_epochs, eta_min=1e-5)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.5, patience=5)
 
     # load a pre-trained model and resume training
     if resume_training:
@@ -101,30 +116,38 @@ if __name__ == "__main__":
             img, label = batch
             img, label = img.to(DEVICE), label.to(DEVICE)
 
+            optimizer.zero_grad(set_to_none=True)
+
             logits = model(img)
             
-            loss = loss_fn(logits.squeeze(1), label.squeeze(1).float())
+            logits, label = logits.squeeze(1), label.squeeze(1).float()
+
+            loss, _ = loss_fn(logits, label, wbce=wbce)
             epoch_tr_loss += loss.item()
             loss.backward()
 
             optimizer.step()
-            scheduler.step()
-
-            optimizer.zero_grad(set_to_none=True)
 
         epoch_tr_loss /= (b + 1)
 
         # validation round
         model.eval()
         epoch_val_loss = 0.
+        epoch_val_dice_loss = 0.
         with torch.no_grad():
             for b, (img, label) in enumerate(val_loader):
                 img = img.to(DEVICE)
                 label = label.to(DEVICE)
                 logits = model(img)
-                loss = loss_fn(logits, label)
+                loss, loss_dice = loss_fn(logits, label, wbce=wbce)
                 epoch_val_loss += loss.item()
+                epoch_val_dice_loss += loss_dice.item()
         epoch_val_loss /= (b + 1)
+        epoch_val_dice_loss /= (b + 1)
+
+        # scheduler step (epoch-wise, for ROP)
+        if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            scheduler.step(epoch_val_dice_loss)
 
         if epoch_val_loss < lower_val_loss:
             lower_val_loss = epoch_val_loss

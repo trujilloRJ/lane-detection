@@ -3,12 +3,18 @@ import os
 import numpy as np
 import torch
 import torch.nn.functional as F
+import json
 from network import LaneDetectionUNet, LaneDataset
 
 if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
     dummy = r"data\labels"
-    model_name = "shallowUNET_v6_deep_double_conv_B4_Lmix_R_AdamW_ep82"
+    epoch = "131"
+    model_name = "sUNet_v7_Srop_adam_wbce"
+    exp_name = f"{model_name}_ep{epoch}"
+
+    with open(f"checkpoints\{model_name}_config.json", "r") as f:
+        config = json.load(f)
 
     if not os.path.exists(f"results/{model_name}"):
         os.makedirs(f"results/{model_name}")
