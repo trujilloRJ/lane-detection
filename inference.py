@@ -15,8 +15,8 @@ KEY_G = 103
 KEY_S = 115
 
 if __name__=="__main__":
-    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
+    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
+    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
     gt_folder = r"data\labels"
 
     dataset = LaneDataset(img_folder, gt_folder)

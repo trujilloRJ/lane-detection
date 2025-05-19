@@ -5,6 +5,7 @@ import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from network import LaneDataset, LaneDetectionUNet, loss_bce_dice, jaccard_loss
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +38,21 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "v6_deep_double_conv_B4_Lmix_R"
+    experiment_name = "sUNet_v7_Scos"
     resume_training = False
     initial_epoch = 0
     SEED = 0
-    n_epochs = 100
-    lr = 0.0003
+    n_epochs = 200
+    lr = 0.001
     batch_size = 4
-    save_each = 10
+    save_each = 25
     loss_fn = loss_bce_dice
     #-------------------------
+
+    # initializing experiment configuration
+    config = {
+        "exp_name": experiment_name,
+    }
 
     logging.basicConfig(filename=f'checkpoints/{experiment_name}.log', encoding='utf-8', level=logging.DEBUG)
 
@@ -57,8 +63,15 @@ if __name__ == "__main__":
     data = LaneDataset(img_folder, gt_folder)
     print(f"All training samples: {len(data)}")
 
-    train_data, val_data = random_split(data, [200, 89])
     set_seed(SEED)
+    
+    # split data into train and validation, this way we save the validation indices
+    n_train, n_val = 200, 89
+    indices = list(range(len(data)))
+    train_indices, val_indices = random_split(indices, [n_train, n_val])
+    train_data = torch.utils.data.Subset(data, train_indices)
+    val_data = torch.utils.data.Subset(data, val_indices)
+    config['val_indices'] = val_indices.indices
 
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
@@ -68,12 +81,13 @@ if __name__ == "__main__":
 
     model.to(DEVICE)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr = lr)
+    optimizer = torch.optim.AdamW(model.parameters(), lr = lr)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*n_epochs, eta_min=1e-5)
 
+    # load a pre-trained model and resume training
     if resume_training:
-        # load a pre-trained model and resume training
         try:
-            load_checkpoint(model, optimizer, f"checkpoints/shallowUNET_{experiment_name}_ep{initial_epoch}.pth")
+            load_checkpoint(model, optimizer, f"checkpoints/{experiment_name}_ep{initial_epoch}.pth")
         except:
             raise FileNotFoundError("Unable to laod trained model to resume training")
 
@@ -85,22 +99,19 @@ if __name__ == "__main__":
         epoch_tr_loss = 0.
         for b, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Training epoch {epoch}")):
             img, label = batch
-            img = img.to(DEVICE)
-            label = label.to(DEVICE)
+            img, label = img.to(DEVICE), label.to(DEVICE)
 
             logits = model(img)
-
-            # B, 1, H, W
             
             loss = loss_fn(logits.squeeze(1), label.squeeze(1).float())
             epoch_tr_loss += loss.item()
             loss.backward()
 
             optimizer.step()
+            scheduler.step()
 
             optimizer.zero_grad(set_to_none=True)
 
-            # print(f"   Batch {b} -> loss: {loss.item():.3f}")
         epoch_tr_loss /= (b + 1)
 
         # validation round
@@ -122,10 +133,11 @@ if __name__ == "__main__":
             save_this = False
 
         if ((global_epoch % save_each == 0) | (save_this)):
-            save_checkpoint(model, optimizer, epoch,  f"checkpoints/shallowUNET_{experiment_name}_ep{global_epoch}.pth")
+            save_checkpoint(model, optimizer, epoch,  f"checkpoints/{experiment_name}_ep{global_epoch}.pth")
 
         logging.info(f"Global epoch: {global_epoch} -> Train loss: {epoch_tr_loss:.3f} | Validation loss: {epoch_val_loss:.3f}")
-        print(f"Train loss: {epoch_tr_loss:.3f} | Validation loss: {epoch_val_loss:.3f}")
+        print(f"Train loss: {epoch_tr_loss:.3f} | Validation loss: {epoch_val_loss:.3f} | LR: {scheduler.get_last_lr()[0]:.6f}")
         print(f"-----------------------------------------------------------------------")
     
-    save_checkpoint(model, optimizer, epoch,  f"checkpoints/shallowUNET_{experiment_name}_ep{global_epoch}.pth")
+    with open(f'checkpoints/{experiment_name}_config.json', 'w') as f:
+        json.dump(config, f, indent=4)
