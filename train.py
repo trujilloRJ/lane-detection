@@ -42,13 +42,13 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "sUNet_v7_Srop_adam_wbce"
-    resume_training = True
-    initial_epoch = 131
+    experiment_name = "sUNetWide_v8_Srop_adam"
+    resume_training = False
+    initial_epoch = 0
     SEED = 0
     n_epochs = 150
-    lr = 5e-5
-    batch_size = 4
+    lr = 1e-4
+    batch_size = 2
     save_each = 25
     optimizer_choice = OptimizerChoice.ADAMW
     loss_fn = loss_bce_dice
@@ -104,7 +104,7 @@ if __name__ == "__main__":
         try:
             load_checkpoint(model, optimizer, f"checkpoints/{experiment_name}_ep{initial_epoch}.pth")
         except:
-            raise FileNotFoundError("Unable to laod trained model to resume training")
+            raise FileNotFoundError("Unable to load trained model to resume training")
 
     lower_val_loss = 100
     for epoch in range(n_epochs):
@@ -123,6 +123,7 @@ if __name__ == "__main__":
             logits, label = logits.squeeze(1), label.squeeze(1).float()
 
             loss, _ = loss_fn(logits, label, wbce=wbce)
+
             epoch_tr_loss += loss.item()
             loss.backward()
 
@@ -147,7 +148,8 @@ if __name__ == "__main__":
 
         # scheduler step (epoch-wise, for ROP)
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            scheduler.step(epoch_val_dice_loss)
+            if scheduler.get_last_lr()[0] > 5e-6:
+                scheduler.step(epoch_val_dice_loss)
 
         if epoch_val_loss < lower_val_loss:
             lower_val_loss = epoch_val_loss

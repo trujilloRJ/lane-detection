@@ -9,8 +9,8 @@ from network import LaneDetectionUNet, LaneDataset
 if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
     dummy = r"data\labels"
-    epoch = "131"
-    model_name = "sUNet_v7_Srop_adam_wbce"
+    epoch = "73"
+    model_name = "sUNetWide_v8_Srop_adam"
     exp_name = f"{model_name}_ep{epoch}"
 
     with open(f"checkpoints\{model_name}_config.json", "r") as f:
@@ -22,7 +22,7 @@ if __name__=="__main__":
     dataset = LaneDataset(img_folder, dummy)
 
     model = LaneDetectionUNet(double_conv=True)
-    params = torch.load(f"checkpoints/{model_name}.pth")
+    params = torch.load(f"checkpoints/{exp_name}.pth")
     model.load_state_dict(params['model_state_dict'])
     model.eval()
 

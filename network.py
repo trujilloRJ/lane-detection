@@ -101,13 +101,16 @@ class LaneDetectionUNet(nn.Module):
     def __init__(self, double_conv=False):
         super().__init__()
 
-        self.d1 = Down(3, 16, double_conv)  # f=1/2
-        self.d2 = Down(16, 32, double_conv) # f=1/4
-        self.d3 = Down(32, 64, double_conv) # f=1/8
-        self.u1 = Up(64, 32, double_conv=double_conv)   # f=1/4
-        self.u2 = Up(64, 16, double_conv=double_conv)   # f=1/2
-        self.u3 = Up(32, 16, out_size=(IMG_HEIGHT, IMG_WIDTH), double_conv=double_conv)   # f=1
-        self.out_conv = nn.Conv2d(16, 1, kernel_size=1)
+        # chs = [16, 32, 64]
+        chs = [32, 64, 128]
+
+        self.d1 = Down(3, chs[0], double_conv)  # f=1/2
+        self.d2 = Down(chs[0], chs[1], double_conv) # f=1/4
+        self.d3 = Down(chs[1], chs[2], double_conv) # f=1/8
+        self.u1 = Up(chs[2], chs[1], double_conv=double_conv)   # f=1/4
+        self.u2 = Up(chs[2], chs[0], double_conv=double_conv)   # f=1/2
+        self.u3 = Up(chs[1], chs[0], out_size=(IMG_HEIGHT, IMG_WIDTH), double_conv=double_conv)   # f=1
+        self.out_conv = nn.Conv2d(chs[0], 1, kernel_size=1)
 
     def forward(self, X):
 

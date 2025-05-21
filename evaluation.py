@@ -20,7 +20,7 @@ def auc_from_roc_curve(tpr, fpr):
 
 if __name__ == "__main__":
 
-    exp_name = "sUNet_v7_Srop_adam_wbce_ep131"
+    exp_name = "sUNetWide_v8_Srop_adam"
     pred_path = f"results/{exp_name}"
     gt_path = r"data\testing"
     
