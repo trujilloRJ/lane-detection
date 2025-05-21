@@ -7,7 +7,8 @@ import json
 from network import LaneDetectionUNet, LaneDataset
 
 if __name__=="__main__":
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
+    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
+    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
     dummy = r"data\labels"
     epoch = "73"
     model_name = "sUNetWide_v8_Srop_adam"
@@ -21,12 +22,16 @@ if __name__=="__main__":
 
     dataset = LaneDataset(img_folder, dummy)
 
+    # get validation samples
+    val_indices = config['val_indices']
+    dataset.subset_on_indices(val_indices)
+
     model = LaneDetectionUNet(double_conv=True)
     params = torch.load(f"checkpoints/{exp_name}.pth")
     model.load_state_dict(params['model_state_dict'])
     model.eval()
 
-    for idx, (img_name, gt_name) in enumerate(dataset.img_gt_list):
+    for idx, (img_name, _) in enumerate(dataset.img_gt_list):
         img, _ = dataset[idx]
         img = img[None, :, :, :]
         pred = model(img)

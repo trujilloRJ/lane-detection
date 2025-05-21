@@ -37,6 +37,9 @@ class LaneDataset(Dataset):
     def get_curr_img_fn(self, idx):
         img_fn, _ = self.img_gt_list[idx]
         return img_fn
+    
+    def subset_on_indices(self, indices: list):
+        self.img_gt_list = [self.img_gt_list[i] for i in indices]
 
 
 class Down(nn.Module):

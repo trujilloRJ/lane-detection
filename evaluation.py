@@ -6,6 +6,7 @@ from constants import IMG_HEIGHT, IMG_WIDTH
 import torch.nn.functional as F
 import warnings
 import tqdm
+from common import compute_tp_fp_fn, pad_gt
 
 warnings.filterwarnings("error")
 
@@ -22,7 +23,7 @@ if __name__ == "__main__":
 
     exp_name = "sUNetWide_v8_Srop_adam"
     pred_path = f"results/{exp_name}"
-    gt_path = r"data\testing"
+    gt_path = r"data\labels"
     
     files_ = os.listdir(pred_path)
     thr_vec = np.arange(0, 1, step=0.01)
@@ -35,19 +36,23 @@ if __name__ == "__main__":
     for j, img_name in enumerate(tqdm.tqdm(files_)):
         img_name = img_name.split(".")[0]
 
+        split_ = img_name.split("_")
+        if len(split_) == 1:
+            continue
+
+        mask_type = split_[0]
+        img_index = split_[1]
+
         try:
             pred = cv2.imread(f"{pred_path}/{img_name}.png", cv2.IMREAD_GRAYSCALE)
-            gt = cv2.imread(f"{gt_path}/mask_{img_name}.png", cv2.IMREAD_GRAYSCALE)
+            gt = cv2.imread(f"{gt_path}/mask_{mask_type}_road_{img_index}.png", cv2.IMREAD_GRAYSCALE)
         except:
             print("WARNING: {img_name} unable to read, will be skipped for validation")
             continue
 
         # Pad gt to be of IMG_HEIGHT, IMG_WIDTH, crop gt to be of IMG_HEIGHT, IMG_WIDTH
         if (gt is not None):
-            gt = gt[:IMG_HEIGHT, :IMG_WIDTH]
-            pad_height = max(0, IMG_HEIGHT - gt.shape[0])
-            pad_width = max(0, IMG_WIDTH - gt.shape[1])
-            gt = np.pad(gt, ((0, pad_height), (0, pad_width)), mode='constant', constant_values=0)
+            gt = pad_gt(gt, IMG_HEIGHT, IMG_WIDTH)
             
             # cv2.imshow("pred", pred)
             # cv2.imshow("gt", gt)
@@ -63,9 +68,7 @@ if __name__ == "__main__":
                 pred_road = np.zeros_like(pred)
                 pred_road[pred >= thr] = 1.
 
-                tp = np.sum(pred_road * gt)  # both are ones
-                fp = np.sum((pred_road > 0.95) & (gt == 0))
-                fn = np.sum((pred_road < 0.05) & (gt > 0.95))
+                tp, fp, fn = compute_tp_fp_fn(pred_road, gt)
 
                 tp_vec[i] += tp
                 fp_vec[i] += fp
