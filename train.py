@@ -42,7 +42,7 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "sUNetWide_v8_Srop_adam"
+    experiment_name = "sUNetWide_v8_Srop_adam_augv1"
     resume_training = False
     initial_epoch = 0
     SEED = 0
@@ -53,12 +53,13 @@ if __name__ == "__main__":
     optimizer_choice = OptimizerChoice.ADAMW
     loss_fn = loss_bce_dice
     wbce = torch.tensor([0.8], device=DEVICE) # weight of the BCE loss
+    augment_data = True
     #-------------------------
 
     # initializing experiment configuration
     config = {
         "exp_name": experiment_name,
-        "optimizer_choice": OptimizerChoice.SGD.value
+        "optimizer_choice": optimizer_choice.value
     }
 
     logging.basicConfig(filename=f'checkpoints/{experiment_name}.log', encoding='utf-8', level=logging.DEBUG)

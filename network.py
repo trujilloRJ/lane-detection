@@ -1,6 +1,7 @@
 import cv2
 import torch
 import torch.nn.functional as F
+import albumentations as A
 
 from torchvision.io import read_image
 from os import listdir
@@ -9,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from constants import IMG_HEIGHT, IMG_WIDTH
 
 class LaneDataset(Dataset):
-    def __init__(self, img_folder: str, gt_folder: str):
+    def __init__(self, img_folder: str, gt_folder: str, augment=False, seed=0):
         self.img_folder = img_folder
         self.gt_folder = gt_folder
 
@@ -17,22 +18,43 @@ class LaneDataset(Dataset):
         gt_name_lists = listdir(gt_folder)
         self.img_gt_list = [(img, gt) for img, gt in zip(img_name_lists, gt_name_lists)]
 
+        if augment:
+            self.transform = A.Compose(
+                [
+                    A.HorizontalFlip(p=0.5),
+                    # A.Rotate(limit=5., p=1.0),
+                    # A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=1.0),
+                    A.ToTensorV2(),
+                ],
+                seed=seed
+            )
+        else:
+            self.transform = A.ToTensorV2()
+
     def __len__(self):
         return len(self.img_gt_list)
     
     def __getitem__(self, idx):
         img_fn, gt_fn = self.img_gt_list[idx]
-        img = read_image(f"{self.img_folder}/{img_fn}")
-        gt = read_image(f"{self.gt_folder}/{gt_fn}")
+        img = cv2.imread(f"{self.img_folder}/{img_fn}")
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        gt = cv2.imread(f"{self.gt_folder}/{gt_fn}", cv2.IMREAD_GRAYSCALE)
 
-        # TODO: this can be done offline for speeding-up training
-        # Crop or pad the image and ground truth to the target size
-        img = F.pad(img, (0, max(0, IMG_WIDTH - img.shape[2]), 0, max(0, IMG_HEIGHT - img.shape[1])), mode='constant', value=0)
-        gt = F.pad(gt, (0, max(0, IMG_WIDTH - gt.shape[2]), 0, max(0, IMG_HEIGHT - gt.shape[1])), mode='constant', value=0)
-        img = img[:, :IMG_HEIGHT, :IMG_WIDTH]
-        gt = gt[:, :IMG_HEIGHT, :IMG_WIDTH]
+        # Pad or crop img and gt to IMG_HEIGHT, IMG_WIDTH
+        h, w = img.shape[:2]
+        pad_h = max(0, IMG_HEIGHT - h)
+        pad_w = max(0, IMG_WIDTH - w)
+        img = cv2.copyMakeBorder(img, 0, pad_h, 0, pad_w, cv2.BORDER_CONSTANT, value=0)
+        gt = cv2.copyMakeBorder(gt, 0, pad_h, 0, pad_w, cv2.BORDER_CONSTANT, value=0)
+        img = img[:IMG_HEIGHT, :IMG_WIDTH]
+        gt = gt[:IMG_HEIGHT, :IMG_WIDTH]
 
-        return img.float(), gt.float()
+        # if augmented is False, this will be just cast as tensors
+        augmented = self.transform(image = img, mask = gt)
+        img = augmented['image']
+        gt = augmented['mask']
+
+        return img, gt
     
     def get_curr_img_fn(self, idx):
         img_fn, _ = self.img_gt_list[idx]

@@ -73,7 +73,8 @@ if __name__=="__main__":
         img = torch.swapaxes(img.squeeze(), 0, 2)
         img = torch.swapaxes(img.squeeze(), 0, 1)
         img = np.uint8(img.detach().numpy())
-
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        
         # making pred blue and gt green
         pred[:, :, 1:] = 0
         gt[:, :, 0] = 0 
