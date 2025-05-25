@@ -21,9 +21,9 @@ def auc_from_roc_curve(tpr, fpr):
 
 if __name__ == "__main__":
 
-    exp_name = "sUNetWide_v8_Srop_adam"
+    exp_name = "sUNet_v7_Srop_adam_augv2"
     pred_path = f"results/{exp_name}"
-    gt_path = r"data\labels"
+    gt_path = r"data\labels\validation"
     
     files_ = os.listdir(pred_path)
     thr_vec = np.arange(0, 1, step=0.01)
@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
         try:
             pred = cv2.imread(f"{pred_path}/{img_name}.png", cv2.IMREAD_GRAYSCALE)
-            gt = cv2.imread(f"{gt_path}/mask_{mask_type}_road_{img_index}.png", cv2.IMREAD_GRAYSCALE)
+            gt = cv2.imread(f"{gt_path}/{mask_type}_road_{img_index}.png", cv2.IMREAD_GRAYSCALE)
         except:
             print("WARNING: {img_name} unable to read, will be skipped for validation")
             continue

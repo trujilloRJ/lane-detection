@@ -10,7 +10,7 @@ if __name__ == "__main__":
     val_dir = "validation"
     n_train, n_val = 200, 89
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
-    gt_folder = r"data\labels"
+    gt_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\gt_image_2"
 
     os.makedirs(os.path.join(train_dir, "images"), exist_ok=True)
     os.makedirs(os.path.join(train_dir, "labels"), exist_ok=True)

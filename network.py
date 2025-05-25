@@ -21,9 +21,9 @@ class LaneDataset(Dataset):
         if augment:
             self.transform = A.Compose(
                 [
-                    A.HorizontalFlip(p=0.5),
+                    # A.HorizontalFlip(p=0.5),
                     # A.Rotate(limit=5., p=1.0),
-                    # A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=1.0),
+                    A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=0.5),
                     A.ToTensorV2(),
                 ],
                 seed=seed
@@ -42,19 +42,19 @@ class LaneDataset(Dataset):
 
         # Pad or crop img and gt to IMG_HEIGHT, IMG_WIDTH
         h, w = img.shape[:2]
+        if h != IMG_HEIGHT or w != IMG_WIDTH:
+            pass
         pad_h = max(0, IMG_HEIGHT - h)
         pad_w = max(0, IMG_WIDTH - w)
         img = cv2.copyMakeBorder(img, 0, pad_h, 0, pad_w, cv2.BORDER_CONSTANT, value=0)
-        gt = cv2.copyMakeBorder(gt, 0, pad_h, 0, pad_w, cv2.BORDER_CONSTANT, value=0)
         img = img[:IMG_HEIGHT, :IMG_WIDTH]
-        gt = gt[:IMG_HEIGHT, :IMG_WIDTH]
 
         # if augmented is False, this will be just cast as tensors
         augmented = self.transform(image = img, mask = gt)
         img = augmented['image']
         gt = augmented['mask']
 
-        return img, gt
+        return img.float(), gt.float()
     
     def get_curr_img_fn(self, idx):
         img_fn, _ = self.img_gt_list[idx]
@@ -123,11 +123,13 @@ class Up(nn.Module):
 
 
 class LaneDetectionUNet(nn.Module):
-    def __init__(self, double_conv=False):
+    def __init__(self, double_conv=False, wide=False):
         super().__init__()
 
-        # chs = [16, 32, 64]
-        chs = [32, 64, 128]
+        if wide:
+            chs = [32, 64, 128]
+        else:
+            chs = [16, 32, 64]
 
         self.d1 = Down(3, chs[0], double_conv)  # f=1/2
         self.d2 = Down(chs[0], chs[1], double_conv) # f=1/4

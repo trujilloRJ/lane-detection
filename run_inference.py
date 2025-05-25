@@ -18,19 +18,14 @@ KEY_G = 103
 KEY_S = 115
 
 if __name__=="__main__":
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
-    # img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\testing\image_2"
-    gt_folder = r"data\labels"
+    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
+    gt_folder = r"data\labels\validation"
     wbce = torch.tensor([0.8]) # weight of the BCE loss
-    model_name = "sUNetWide_v8_Srop_adam"
-    epoch = "73"
+    model_name = "sUNet_v7_Srop_adam_augv2"
+    epoch = "100"
     exp_name = f"{model_name}_ep{epoch}"
 
-    with open(f"checkpoints\{model_name}_config.json", "r") as f:
-        config = json.load(f)
-
     dataset = LaneDataset(img_folder, gt_folder)
-    dataset.subset_on_indices(config['val_indices'])
 
     model = LaneDetectionUNet(double_conv=True)
     params = torch.load(f"checkpoints/{exp_name}.pth")
@@ -40,19 +35,20 @@ if __name__=="__main__":
 
     run = True
     img_index = 0
-    thr = 0.1
+    thr = 0.2
     while(run):
         img, gt = dataset[img_index]
+        gt = gt.squeeze()
         
         img = img[None, :, :, :]
         pred = model(img)
-        logits_bhw = pred.squeeze(1)
+        logits_bhw = pred.squeeze()
         loss_mixed, loss_dice = loss_bce_dice(logits_bhw, gt, wbce)
-        loss_bce = F.binary_cross_entropy_with_logits(logits_bhw, gt.float(), weight=wbce)
-        loss_jaccard = jaccard_loss(logits_bhw, gt.float())
+        loss_bce = F.binary_cross_entropy_with_logits(logits_bhw, gt, weight=wbce)
+        loss_jaccard = jaccard_loss(logits_bhw, gt)
 
         # computing metrics
-        gt = gt.squeeze().detach().numpy().astype(float)
+        gt = gt.detach().numpy().astype(float)
         gt = pad_gt(gt, IMG_HEIGHT, IMG_WIDTH)
         probs = F.sigmoid(pred).squeeze().detach().numpy()
         probs[probs > thr] = 1.
@@ -101,6 +97,8 @@ if __name__=="__main__":
         # Draw rectangles with color based on precision and recall
         prec_color = get_bg_color(precision)
         rec_color = get_bg_color(recall)
+        img_name, _ = dataset.img_gt_list[img_index]
+        cv2.putText(frame2, f"Image: {img_name}", (50, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.rectangle(frame2, (45, 38), (200, 60), prec_color, -1)
         cv2.rectangle(frame2, (45, 63), (200, 85), rec_color, -1)
         cv2.putText(frame2, f"Precision: {precision:.2f}", (50, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)

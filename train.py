@@ -42,50 +42,45 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "sUNetWide_v8_Srop_adam_augv1"
+    experiment_name = "sUNet_v7_Srop_adam_augv2"
     resume_training = False
     initial_epoch = 0
     SEED = 0
-    n_epochs = 150
-    lr = 1e-4
+    n_epochs = 100
+    lr = 3e-4
     batch_size = 2
     save_each = 25
     optimizer_choice = OptimizerChoice.ADAMW
     loss_fn = loss_bce_dice
     wbce = torch.tensor([0.8], device=DEVICE) # weight of the BCE loss
+    wide = False
     augment_data = True
     #-------------------------
+
+    set_seed(SEED)
 
     # initializing experiment configuration
     config = {
         "exp_name": experiment_name,
-        "optimizer_choice": optimizer_choice.value
+        "optimizer_choice": optimizer_choice.value,
+        "augmentation": augment_data
     }
 
     logging.basicConfig(filename=f'checkpoints/{experiment_name}.log', encoding='utf-8', level=logging.DEBUG)
 
     # Creating datasets
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
-    gt_folder = r"data\labels"
+    train_img_dir = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\training\images"
+    val_img_dir = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
+    train_gt_dir = r"data\labels\training"
+    val_gt_dir = r"data\labels\validation"
 
-    data = LaneDataset(img_folder, gt_folder)
-    print(f"All training samples: {len(data)}")
-
-    set_seed(SEED)
-    
-    # split data into train and validation, this way we save the validation indices
-    n_train, n_val = 200, 89
-    indices = list(range(len(data)))
-    train_indices, val_indices = random_split(indices, [n_train, n_val])
-    train_data = torch.utils.data.Subset(data, train_indices)
-    val_data = torch.utils.data.Subset(data, val_indices)
-    config['val_indices'] = val_indices.indices
+    train_data = LaneDataset(train_img_dir, train_gt_dir, augment=augment_data)
+    val_data = LaneDataset(val_img_dir, val_gt_dir, augment=False)
 
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
-    double_conv = True
-    model = LaneDetectionUNet(double_conv)
+    model = LaneDetectionUNet(double_conv = True, wide=wide)
 
     model.to(DEVICE)
   
@@ -141,6 +136,7 @@ if __name__ == "__main__":
                 img = img.to(DEVICE)
                 label = label.to(DEVICE)
                 logits = model(img)
+                logits, label = logits.squeeze(1), label.squeeze(1).float()
                 loss, loss_dice = loss_fn(logits, label, wbce=wbce)
                 epoch_val_loss += loss.item()
                 epoch_val_dice_loss += loss_dice.item()
