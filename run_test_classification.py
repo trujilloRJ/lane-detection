@@ -9,15 +9,16 @@ from network import LaneDetectionUNet, LaneDataset
 if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
     dummy = r"data\labels\validation"
-    epoch = "100"
-    model_name = "sUNet_v7_Srop_adam_augv0"
+    epoch = "68"
+    model_name = "sUNetW_v8_Srop_adam_augv2"
     exp_name = f"{model_name}_ep{epoch}"
+    wide = True
 
     os.makedirs(f"results/{model_name}", exist_ok=True)
 
     dataset = LaneDataset(img_folder, dummy)
 
-    model = LaneDetectionUNet(double_conv=True)
+    model = LaneDetectionUNet(double_conv=True, wide=wide)
     params = torch.load(f"checkpoints/{exp_name}.pth")
     model.load_state_dict(params['model_state_dict'])
     model.eval()

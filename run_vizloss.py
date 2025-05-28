@@ -4,7 +4,7 @@ from common import extract_log_data
 
 if __name__=="__main__":
     checkpoint_folder = "checkpoints"
-    exp_name = "sUNet_v7_Srop_adam_augv2"
+    exp_name = "sUNetW_v8_Srop_adam_augv2"
     log_file_path = f"{checkpoint_folder}/{exp_name}.log"
     epochs, train_losses, validation_losses = extract_log_data(log_file_path)
 

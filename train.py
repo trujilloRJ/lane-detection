@@ -42,18 +42,18 @@ def load_checkpoint(model, optimizer, path):
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "sUNet_v7_Srop_adam_augv2"
+    experiment_name = "UNet2down_v9_Srop_adam_augv2"
     resume_training = False
     initial_epoch = 0
     SEED = 0
-    n_epochs = 100
+    n_epochs = 150
     lr = 3e-4
     batch_size = 2
     save_each = 25
     optimizer_choice = OptimizerChoice.ADAMW
     loss_fn = loss_bce_dice
     wbce = torch.tensor([0.8], device=DEVICE) # weight of the BCE loss
-    wide = False
+    wide = True
     augment_data = True
     #-------------------------
 
@@ -63,7 +63,8 @@ if __name__ == "__main__":
     config = {
         "exp_name": experiment_name,
         "optimizer_choice": optimizer_choice.value,
-        "augmentation": augment_data
+        "augmentation": augment_data,
+        "wide": wide
     }
 
     logging.basicConfig(filename=f'checkpoints/{experiment_name}.log', encoding='utf-8', level=logging.DEBUG)
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
-    model = LaneDetectionUNet(double_conv = True, wide=wide)
+    model = LaneDetectionUNet(double_conv = True, wide = wide)
 
     model.to(DEVICE)
   
