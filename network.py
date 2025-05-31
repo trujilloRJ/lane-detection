@@ -21,7 +21,7 @@ class LaneDataset(Dataset):
         if augment:
             self.transform = A.Compose(
                 [
-                    # A.HorizontalFlip(p=0.5), # v1
+                    A.HorizontalFlip(p=0.5), # v1
                     A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=0.5), # v2
                     # A.ToGray(p=0.5), # v3
                     A.ToTensorV2(),
@@ -107,9 +107,8 @@ class UpBlock(nn.Module):
         return X
         
 
-
 class LaneDetectionUNet(nn.Module):
-    def __init__(self, double_conv=False, wide=False):
+    def __init__(self, wide=False):
         super().__init__()
 
         if wide:
