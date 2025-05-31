@@ -112,7 +112,8 @@ class LaneDetectionUNet(nn.Module):
         super().__init__()
 
         if wide:
-            chs = [32, 64, 128]
+            # chs = [32, 64, 128]
+            chs = [64, 128, 256]
         else:
             chs = [16, 32, 64]
 
@@ -172,5 +173,6 @@ def loss_bce_dice(logits_bhw, label_bhw, wbce, alpha=.5):
 if __name__ == "__main__":
     X = torch.rand(1, 3, 400, 400)
     model = LaneDetectionUNet(wide=True)
+    print(model)
     logits = model(X)
     print(logits.shape)
