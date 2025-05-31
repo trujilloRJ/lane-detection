@@ -21,7 +21,7 @@ def auc_from_roc_curve(tpr, fpr):
 
 if __name__ == "__main__":
 
-    exp_name = "sUNetW_v8_Srop_adam_augv2"
+    exp_name = "UNet2down_v9_Scos_adam_augv2_deterministic"
     pred_path = f"results/{exp_name}"
     gt_path = r"data\labels\validation"
     
@@ -78,8 +78,7 @@ if __name__ == "__main__":
     recall = tp_vec/(tp_vec + fn_vec)
     f1_score = tp_vec/(tp_vec + 0.5*(fp_vec + fn_vec))
 
-    # AUC = auc_from_roc_curve(recall_vec, raw_metrics[1, :])
-    # print(AUC)
+    np.savez(f"{pred_path}/tp_fp_fn.npz", tp=tp_vec, fp=fp_vec, fn=fn_vec)
 
     fig = plt.figure(figsize=(12, 4))
     gs = fig.add_gridspec(3, 2)

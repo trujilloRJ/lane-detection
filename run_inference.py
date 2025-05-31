@@ -21,7 +21,7 @@ if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
     gt_folder = r"data\labels\validation"
     wbce = torch.tensor([0.8]) # weight of the BCE loss
-    model_name = "UNet2down_v9_Srop_adam_augv2"
+    model_name = "UNet2down_v9_Scos_adam_augv2_deterministic"
     epoch = "91"
     exp_name = f"{model_name}_ep{epoch}"
     wide = True
