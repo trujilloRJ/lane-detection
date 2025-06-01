@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import cv2
 import torch.nn.functional as F
-import json
-from network import LaneDetectionUNet, LaneDataset, loss_bce_dice, dice_loss, jaccard_loss
+import os
+from network import LaneDetectionUNet, LaneDetectionDeeperUNet, LaneDataset, loss_bce_dice, dice_loss, jaccard_loss
 from common import compute_tp_fp_fn, pad_gt
 from constants import IMG_HEIGHT, IMG_WIDTH
 
@@ -21,14 +21,16 @@ if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
     gt_folder = r"data\labels\validation"
     wbce = torch.tensor([0.8]) # weight of the BCE loss
-    model_name = "UNet2down_v9_Scos_adam_augv2_deterministic"
-    epoch = "91"
+    model_name = "UNet3down_v10_Scos_adam_augv2"
+    epoch = "60"
     exp_name = f"{model_name}_ep{epoch}"
     wide = True
+    save_folder = f"examples/{model_name}"
+    os.makedirs(save_folder, exist_ok=True)
 
     dataset = LaneDataset(img_folder, gt_folder)
 
-    model = LaneDetectionUNet(double_conv=True, wide=wide)
+    model = LaneDetectionDeeperUNet(wide=wide)
     params = torch.load(f"checkpoints/{exp_name}.pth")
     model.load_state_dict(params['model_state_dict'])
      
@@ -36,7 +38,7 @@ if __name__=="__main__":
 
     run = True
     img_index = 0
-    thr = 0.2
+    thr = 0.1
     while(run):
         img, gt = dataset[img_index]
         gt = gt.squeeze()
@@ -113,6 +115,8 @@ if __name__=="__main__":
             img_index -= 1
         if key == KEY_ESC:
             run = False
+        if key == KEY_S:
+            cv2.imwrite(f"{save_folder}/{img_name}", frame2)
         else:
             print(key)
 

@@ -8,8 +8,8 @@ def set_seed(seed=0):
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.use_deterministic_algorithms(True)
+    # torch.cuda.manual_seed_all(seed)
+    # torch.use_deterministic_algorithms(True)
 
 
 def compute_tp_fp_fn(pred_road: np.ndarray, gt: np.ndarray):

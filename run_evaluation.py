@@ -10,23 +10,14 @@ from common import compute_tp_fp_fn, pad_gt
 
 warnings.filterwarnings("error")
 
-def auc_from_roc_curve(tpr, fpr):
-    # Sort by increasing FPR
-    sorted_indices = np.argsort(fpr)
-    fpr = np.array(fpr)[sorted_indices]
-    tpr = np.array(tpr)[sorted_indices]
-
-    # Trapezoidal integration
-    return np.trapz(tpr, fpr)
-
 if __name__ == "__main__":
 
-    exp_name = "UNet2down_v9_Scos_adam_augv2_deterministic"
+    exp_name = "UNet3down_v10_Scos_adam_augv0"
     pred_path = f"results/{exp_name}"
     gt_path = r"data\labels\validation"
     
     files_ = os.listdir(pred_path)
-    thr_vec = np.arange(0, 1, step=0.01)
+    thr_vec = np.arange(0, 1, step=0.001)
     n_files, n_thrs = len(files_), len(thr_vec)
 
     tp_vec = np.zeros(n_thrs)

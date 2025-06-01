@@ -4,7 +4,7 @@ import tqdm
 import json
 import numpy as np
 from torch.utils.data import DataLoader
-from network import LaneDataset, LaneDetectionUNet, loss_bce_dice
+from network import LaneDataset, LaneDetectionUNet, LaneDetectionDeeperUNet, loss_bce_dice
 from enum import Enum
 from common import set_seed
 from runner import train_step, validate_epoch, load_checkpoint, save_checkpoint
@@ -48,7 +48,7 @@ def train_model(initial_epoch, n_epochs, model, train_loader, val_loader, optimi
 
         if epoch_val_loss < lower_val_loss:
             lower_val_loss = epoch_val_loss
-            save_this = (epoch/n_epochs > 0.5)
+            save_this = (epoch/n_epochs > 0.1)
         else:
             save_this = False
 
@@ -101,11 +101,11 @@ def lr_range_test(n_iter, start_lr, end_lr, optimizer, n_acc_steps, model, train
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "UNet2down_v9_Scos_adam_augv21_deterministic"
+    experiment_name = "UNet3down_v10_Scos_adam_augv2"
     resume_training = False
     initial_epoch = 0
     SEED = 0
-    n_epochs = 100
+    n_epochs = 70
     lr = 5e-4
     batch_size = 2
     save_each = 25
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
-    model = LaneDetectionUNet(wide = wide)
+    model = LaneDetectionDeeperUNet(wide = wide)
 
     model.to(DEVICE)
   

@@ -4,13 +4,13 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import tqdm
-from network import LaneDetectionUNet, LaneDataset
+from network import LaneDetectionUNet, LaneDataset, LaneDetectionDeeperUNet
 
 if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
     dummy = r"data\labels\validation"
-    epoch = "90"
-    model_name = "UNet2down_v9_Scos_adam_augv0_deterministic"
+    epoch = "60"
+    model_name = "UNet3down_v10_Scos_adam_augv2"
     exp_name = f"{model_name}_ep{epoch}"
     wide = True
 
@@ -18,7 +18,7 @@ if __name__=="__main__":
 
     dataset = LaneDataset(img_folder, dummy)
 
-    model = LaneDetectionUNet(wide=wide)
+    model = LaneDetectionDeeperUNet(wide=wide)
     params = torch.load(f"checkpoints/{exp_name}.pth")
     model.load_state_dict(params['model_state_dict'])
     model.eval()
