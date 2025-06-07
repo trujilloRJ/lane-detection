@@ -4,7 +4,7 @@ import tqdm
 import json
 import numpy as np
 from torch.utils.data import DataLoader
-from network import LaneDataset, LaneDetectionUNet, LaneDetectionDeeperUNet, loss_bce_dice
+from network import LaneDataset, BinaryUNet, loss_bce_dice
 from enum import Enum
 from common import set_seed
 from runner import train_step, validate_epoch, load_checkpoint, save_checkpoint
@@ -101,19 +101,19 @@ def lr_range_test(n_iter, start_lr, end_lr, optimizer, n_acc_steps, model, train
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "UNet3down_v10_Scos_adam_augv2"
+    experiment_name = "BUnet_d3_c32_a0_SOneCycle"
     resume_training = False
     initial_epoch = 0
     SEED = 0
     n_epochs = 70
-    lr = 5e-4
+    lr = 1e-4
     batch_size = 2
     save_each = 25
     optimizer_choice = OptimizerChoice.ADAMW
     loss_fn = loss_bce_dice
     wbce = torch.tensor([0.8], device=DEVICE) # weight of the BCE loss
-    wide = True
-    augment_data = True
+    chs = [32, 64, 128]
+    augment_data = False
     #-------------------------
 
     set_seed(SEED)
@@ -123,7 +123,7 @@ if __name__ == "__main__":
         "exp_name": experiment_name,
         "optimizer_choice": optimizer_choice.value,
         "augmentation": augment_data,
-        "wide": wide
+        "unet_chs": chs
     }
 
     logging.basicConfig(filename=f'checkpoints/{experiment_name}.log', encoding='utf-8', level=logging.DEBUG)
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
-    model = LaneDetectionDeeperUNet(wide = wide)
+    model = BinaryUNet(chs)
 
     model.to(DEVICE)
   
@@ -153,23 +153,21 @@ if __name__ == "__main__":
         raise ValueError(f"Unknown optimizer: {optimizer_choice}")
     
     # values drawn from lr range test
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*n_epochs, eta_min=5e-6)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*n_epochs, eta_min=5e-6)
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.5, patience=5)
-    # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=2e-3, total_steps=n_epochs*len(train_loader))
-
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=1e-3, total_steps=n_epochs*len(train_loader))
+    
     # load a pre-trained model and resume training
     if resume_training:
         load_checkpoint(model, optimizer, f"checkpoints/{experiment_name}_ep{initial_epoch}.pth")
-
     train_model(initial_epoch, n_epochs, model, train_loader, val_loader, optimizer, scheduler, loss_fn, wbce)
-
     with open(f'checkpoints/{experiment_name}_config.json', 'w') as f:
         json.dump(config, f, indent=4)
 
-    # n_iter = 100
-    # start_lr = 1e-6
-    # end_lr = 1
-    # n_acc_steps = 16  # backwards pass before update lr
+    # n_iter = 1000
+    # start_lr = 1e-7
+    # end_lr = 10
+    # n_acc_steps = 1   # backwards pass before update lr
     # for param_group in optimizer.param_groups:
     #     param_group['lr'] = start_lr
     # loss_lr = lr_range_test(n_iter, start_lr, end_lr, optimizer, n_acc_steps, model, train_loader, loss_fn, wbce)

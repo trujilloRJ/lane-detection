@@ -105,28 +105,44 @@ class UpBlock(nn.Module):
                         diffY // 2, diffY - diffY // 2])
         X = torch.cat([X, X1], dim=1)
         return X
-        
 
-class LaneDetectionUNet(nn.Module):
-    def __init__(self, wide=False):
+class BinaryUNet(nn.Module):
+    def __init__(self, chs: list, **kwargs):
         super().__init__()
 
-        if wide:
-            chs = [32, 64, 128]
-        else:
-            chs = [16, 32, 64]
-
+        self.depth = len(chs)
         self.enc = nn.Sequential(
             ConvBlock(3, chs[0]),
             ConvBlock(chs[0], chs[0]),
         )
-
-        self.d1 = self._create_down_block(chs[0], chs[1])
-        self.d2 = self._create_down_block(chs[1], chs[2]//2)
-        self.u1 = UpBlock(chs[2], chs[1]//2)
-        self.u2 = UpBlock(chs[1], chs[0])
-
+        self.down_blocks = nn.ModuleList()
+        self.up_blocks = nn.ModuleList()
         self.out_conv = nn.Conv2d(chs[0], 1, kernel_size=1)
+
+        # Create down_blocks and up_blocks based on chs
+        for i in range(self.depth - 1):
+            is_last_index = i == self.depth - 2
+
+            out_ch = chs[i+1]//2 if is_last_index else chs[i+1]
+            self.down_blocks.append(self._create_down_block(chs[i], out_ch))
+
+            out_ch = chs[self.depth - 2 - i] if is_last_index else chs[self.depth - 2 - i]//2 
+            self.up_blocks.append(UpBlock(chs[self.depth - 1 - i], out_ch))
+
+    def forward(self, X):
+        enc_features = []
+        out = self.enc(X)
+        enc_features.append(out)
+        # Down path
+        for i, down in enumerate(self.down_blocks):
+            out = down(out)
+            if i < (len(self.down_blocks)) - 1:
+                enc_features.append(out)
+        # Up path
+        for i, up in enumerate(self.up_blocks):
+            out = up(out, enc_features[-(i + 1)])
+        logits = self.out_conv(out)
+        return logits
 
     def _create_down_block(self, in_ch, out_ch):
         return nn.Sequential(
@@ -134,58 +150,6 @@ class LaneDetectionUNet(nn.Module):
             ConvBlock(in_ch, out_ch),
             ConvBlock(out_ch, out_ch),
         )
-
-    def forward(self, X):
-        X1 = self.enc(X)
-        X2 = self.d1(X1)
-        X = self.d2(X2)
-
-        X = self.u1(X, X2)
-        X = self.u2(X, X1)
-
-        logits = self.out_conv(X)
-        return logits
-    
-
-class LaneDetectionDeeperUNet(nn.Module):
-    def __init__(self, **kwargs):
-        super().__init__()
-
-        chs = [32, 64, 128, 256]
-
-        self.enc = nn.Sequential(
-            ConvBlock(3, chs[0]),
-            ConvBlock(chs[0], chs[0]),
-        )
-
-        self.d1 = self._create_down_block(chs[0], chs[1])
-        self.d2 = self._create_down_block(chs[1], chs[2])
-        self.d3 = self._create_down_block(chs[2], chs[3]//2)
-        self.u1 = UpBlock(chs[3], chs[2]//2)
-        self.u2 = UpBlock(chs[2], chs[1]//2)
-        self.u3 = UpBlock(chs[1], chs[0])
-
-        self.out_conv = nn.Conv2d(chs[0], 1, kernel_size=1)
-
-    def _create_down_block(self, in_ch, out_ch):
-        return nn.Sequential(
-            nn.MaxPool2d(2),
-            ConvBlock(in_ch, out_ch),
-            ConvBlock(out_ch, out_ch),
-        )
-
-    def forward(self, X):
-        X1 = self.enc(X)
-        X2 = self.d1(X1)
-        X3 = self.d2(X2)
-        X = self.d3(X3)
-
-        X = self.u1(X, X3)
-        X = self.u2(X, X2)
-        X = self.u3(X, X1)
-
-        logits = self.out_conv(X)
-        return logits
     
 
 def dice_loss(pred_bhw, target_bhw, eps=0.001, **kwargs):
@@ -210,9 +174,7 @@ def loss_bce_dice(logits_bhw, label_bhw, wbce, alpha=.5):
 
 
 if __name__ == "__main__":
-    X = torch.rand(1, 3, 400, 400)
-    # model = LaneDetectionUNet(wide=True)
-    model = LaneDetectionDeeperUNet(wide=True)
-    print(model)
+    X = torch.rand(1, 3, 40, 40)
+    model = BinaryUNet(chs=[4, 8, 16])
     logits = model(X)
     print(logits.shape)
