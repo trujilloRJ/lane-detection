@@ -3,9 +3,10 @@ import torch
 import cv2
 import torch.nn.functional as F
 import os
-from network import LaneDetectionUNet, LaneDetectionDeeperUNet, LaneDataset, loss_bce_dice, dice_loss, jaccard_loss
+from network import BinaryUNet, LaneDataset, loss_bce_dice, jaccard_loss
 from common import compute_tp_fp_fn, pad_gt
 from constants import IMG_HEIGHT, IMG_WIDTH
+import json
 
 
 KEY_ESC = 27
@@ -21,16 +22,17 @@ if __name__=="__main__":
     img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
     gt_folder = r"data\labels\validation"
     wbce = torch.tensor([0.8]) # weight of the BCE loss
-    model_name = "UNet3down_v10_Scos_adam_augv2"
-    epoch = "60"
+    model_name = "BUnet_d4_c32_a2_SOneCycle"
+    epoch = "65"
     exp_name = f"{model_name}_ep{epoch}"
-    wide = True
     save_folder = f"examples/{model_name}"
     os.makedirs(save_folder, exist_ok=True)
 
     dataset = LaneDataset(img_folder, gt_folder)
 
-    model = LaneDetectionDeeperUNet(wide=wide)
+    with open( f"checkpoints/{model_name}_config.json", "r") as f:
+        model_config = json.load(f)
+    model = BinaryUNet(chs=model_config.get("unet_chs", None))
     params = torch.load(f"checkpoints/{exp_name}.pth")
     model.load_state_dict(params['model_state_dict'])
      

@@ -101,7 +101,7 @@ def lr_range_test(n_iter, start_lr, end_lr, optimizer, n_acc_steps, model, train
 
 if __name__ == "__main__":
     # hyper-parameters
-    experiment_name = "BUnet_d3_c32_a0_SOneCycle"
+    experiment_name = "BUnet_d4_c32_a2_SOneCycle"
     resume_training = False
     initial_epoch = 0
     SEED = 0
@@ -112,8 +112,8 @@ if __name__ == "__main__":
     optimizer_choice = OptimizerChoice.ADAMW
     loss_fn = loss_bce_dice
     wbce = torch.tensor([0.8], device=DEVICE) # weight of the BCE loss
-    chs = [32, 64, 128]
-    augment_data = False
+    chs = [32, 64, 128, 256]
+    augment_data = True
     #-------------------------
 
     set_seed(SEED)
