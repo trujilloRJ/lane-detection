@@ -32,5 +32,5 @@ def create_video_from_images(image_folder, output_video, frame_rate=30, quality=
 # Example usage
 image_folder = f"examples/BUnet_d4_c32_a2_SOneCycle"  
 output_video = 'output_video.mp4'
-fps = 2
+fps = 6
 create_video_from_images(image_folder, output_video, frame_rate=fps)

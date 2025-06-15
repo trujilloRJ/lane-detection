@@ -4,10 +4,13 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import tqdm
-from network import BinaryUNet, LaneDataset, make_unet_from_file
+from network import LaneDataset, make_unet_from_file
+from dotenv import dotenv_values
+
 
 if __name__=="__main__":
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
+    env = dotenv_values(".env")
+    img_folder = os.path.join(env["VALIDATION_DATA_PATH"], "images")
     dummy = r"data\labels\validation"
     epoch = "64"
     model_name = "BUnet_d3_c32_a0_SOneCycle"

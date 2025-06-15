@@ -3,11 +3,11 @@ import torch
 import torch.nn.functional as F
 import albumentations as A
 import json
+from torchsummary import summary
 
-from torchvision.io import read_image
 from os import listdir
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from constants import IMG_HEIGHT, IMG_WIDTH
 
 class LaneDataset(Dataset):
@@ -180,7 +180,9 @@ def make_unet_from_file(config_file: str):
 
 
 if __name__ == "__main__":
-    X = torch.rand(1, 3, 40, 40)
-    model = BinaryUNet(chs=[4, 8, 16])
-    logits = model(X)
-    print(logits.shape)
+    # X = torch.rand(1, 3, 40, 40)
+    # logits = model(X)
+    # print(logits.shape)
+    chs = [32, 64, 128, 256]
+    model = BinaryUNet(chs)
+    summary(model, input_data=(3, IMG_HEIGHT, IMG_WIDTH))

@@ -2,12 +2,14 @@ import torch
 import logging
 import tqdm
 import json
+import os
 import numpy as np
 from torch.utils.data import DataLoader
 from network import LaneDataset, BinaryUNet, loss_bce_dice
 from enum import Enum
 from common import set_seed
 from runner import train_step, validate_epoch, load_checkpoint, save_checkpoint
+from dotenv import dotenv_values
 
 logger = logging.getLogger(__name__)
 
@@ -129,8 +131,9 @@ if __name__ == "__main__":
     logging.basicConfig(filename=f'checkpoints/{experiment_name}.log', encoding='utf-8', level=logging.DEBUG)
 
     # Creating datasets
-    train_img_dir = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\training\images"
-    val_img_dir = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\images"
+    env = dotenv_values(".env")
+    train_img_dir = os.path.join(env["TRAINING_DATA_PATH"], "images")
+    val_img_dir = os.path.join(env["VALIDATION_DATA_PATH"], "images")
     train_gt_dir = r"data\labels\training"
     val_gt_dir = r"data\labels\validation"
 

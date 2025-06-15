@@ -4,13 +4,15 @@ import tqdm
 from network import LaneDataset
 from torch.utils.data import random_split
 from torchvision.utils import save_image
+from dotenv import dotenv_values
 
 if __name__ == "__main__":
+    env = dotenv_values(".env")
     train_dir = "training"
     val_dir = "validation"
     n_train, n_val = 200, 89
-    img_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\image_2"
-    gt_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\data_road\training\gt_image_2"
+    img_folder = os.path.join(env["KITTI_DATA_PATH"], "image_2")
+    gt_folder = os.path.join(env["KITTI_DATA_PATH"], "gt_image_2")
 
     os.makedirs(os.path.join(train_dir, "images"), exist_ok=True)
     os.makedirs(os.path.join(train_dir, "labels"), exist_ok=True)

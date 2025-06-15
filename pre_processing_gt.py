@@ -3,12 +3,13 @@ import os
 import tqdm
 import numpy as np
 from constants import IMG_HEIGHT, IMG_WIDTH
+from dotenv import dotenv_values
 
 GT_LANE_COLOR = [255, 0, 255]  #BGR
-# GT_LANE_COLOR = [0, 254, 0]  #BGR
 
 def main():
-    gt_folder = r"C:\javier\personal_projects\computer_vision\data\KITTI_road_segmentation\split_dataset\validation\labels" 
+    env = dotenv_values(".env")
+    gt_folder = os.path.join(env["VALIDATION_DATA_PATH"], "labels")
     gt_mask_folder = r"data\labels\validation"
 
     os.makedirs(gt_mask_folder, exist_ok=True)
