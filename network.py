@@ -2,6 +2,7 @@ import cv2
 import torch
 import torch.nn.functional as F
 import albumentations as A
+import json
 
 from torchvision.io import read_image
 from os import listdir
@@ -171,6 +172,11 @@ def loss_bce_dice(logits_bhw, label_bhw, wbce, alpha=.5):
     loss_bce = F.binary_cross_entropy_with_logits(logits_bhw, label_bhw, weight=wbce)
     loss_dice = dice_loss(logits_bhw, label_bhw)
     return loss_bce + loss_dice, loss_dice
+
+def make_unet_from_file(config_file: str):
+    with open(config_file, "r") as f:
+        model_config = json.load(f)
+    return BinaryUNet(chs=model_config.get("unet_chs", None)), model_config
 
 
 if __name__ == "__main__":

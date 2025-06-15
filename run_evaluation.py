@@ -12,12 +12,12 @@ warnings.filterwarnings("error")
 
 if __name__ == "__main__":
 
-    exp_name = "UNet3down_v10_Scos_adam_augv0"
+    exp_name = "BUnet_d3_c32_a0_SOneCycle"
     pred_path = f"results/{exp_name}"
     gt_path = r"data\labels\validation"
     
     files_ = os.listdir(pred_path)
-    thr_vec = np.arange(0, 1, step=0.001)
+    thr_vec = np.arange(0, 1, step=0.01)
     n_files, n_thrs = len(files_), len(thr_vec)
 
     tp_vec = np.zeros(n_thrs)
